@@ -1,0 +1,325 @@
+package lse;
+
+import java.io.*;
+import java.util.*;
+
+
+
+/**
+ * This class builds an index of keywords. Each keyword maps to a set of pages in
+ * which it occurs, with frequency of occurrence in each page.
+ *
+ */
+
+public class LittleSearchEngine {
+	
+	/**
+	 * This is a hash table of all keywords. The key is the actual keyword, and the associated value is
+	 * an array list of all occurrences of the keyword in documents. The array list is maintained in 
+	 * DESCENDING order of frequencies.
+	 */
+	HashMap<String,ArrayList<Occurrence>> keywordsIndex;
+	
+	/**
+	 * The hash set of all noise words.
+	 */
+	HashSet<String> noiseWords;
+
+	private Scanner sc;
+	
+	/**
+	 * Creates the keyWordsIndex and noiseWords hash tables.
+	 */
+	public LittleSearchEngine() {
+		keywordsIndex = new HashMap<String,ArrayList<Occurrence>>(1000,2.0f);
+		noiseWords = new HashSet<String>(100,2.0f);
+	}
+	
+	/**
+	 * Scans a document, and loads all keywords found into a hash table of keyword occurrences
+	 * in the document. Uses the getKeyWord method to separate keywords from other words.
+	 * 
+	 * @param docFile Name of the document file to be scanned and loaded
+	 * @return Hash table of keywords in the given document, each associated with an Occurrence object
+	 * @throws FileNotFoundException If the document file is not found on disk
+	 */
+	public HashMap<String,Occurrence> loadKeywordsFromDocument(String docFile) 
+	throws FileNotFoundException {
+		
+		HashMap<String,Occurrence> hashtable = new HashMap<String, Occurrence>();
+		File docu = new File(docFile);
+		Scanner scan = null;
+		try {
+			scan = new Scanner(docu);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		while(scan.hasNext()) {
+			String cc= scan.next();
+			if(getKeyword(cc)!=null) {
+				String gee = getKeyword(cc);
+				int counter=0;
+				if(hashtable.containsKey(gee)) {
+				counter = hashtable.get(gee).frequency;
+				}
+				Occurrence hi = new Occurrence(docFile,counter+1); 
+				hashtable.put(gee,hi);
+			}
+			
+		}
+
+		return hashtable;	
+	}
+	
+	
+	
+	/**
+	 * Merges the keywords for a single document into the master keywordsIndex
+	 * hash table. For each keyword, its Occurrence in the current document
+	 * must be inserted in the correct place (according to descending order of
+	 * frequency) in the same keyword's Occurrence list in the master hash table. 
+	 * This is done by calling the insertLastOccurrence method.
+	 * 
+	 * @param kws Keywords hash table for a document
+	 */
+	public void mergeKeywords(HashMap<String,Occurrence> kws) {
+
+		for (String hashk :kws.keySet()) {
+			
+			if(keywordsIndex.containsKey(hashk)) {
+				keywordsIndex.get(hashk).add(kws.get(hashk));
+				insertLastOccurrence(keywordsIndex.get(hashk));
+				keywordsIndex.put(hashk,keywordsIndex.get(hashk));
+			}else {
+				ArrayList <Occurrence> insert = new ArrayList<Occurrence>();
+				insert.add( kws.get(hashk));
+				insertLastOccurrence(insert);
+				keywordsIndex.put(hashk, insert);
+				
+			}
+		}
+		
+
+	}
+		
+	
+	/**
+	 * Given a word, returns it as a keyword if it passes the keyword test,
+	 * otherwise returns null. A keyword is any word that, after being stripped of any
+	 * trailing punctuation, consists only of alphabetic letters, and is not
+	 * a noise word. All words are treated in a case-INsensitive manner.
+	 * 
+	 * Punctuation characters are the following: '.', ',', '?', ':', ';' and '!'
+	 * 
+	 * @param word Candidate word
+	 * @return Keyword (word without trailing punctuation, LOWER CASE)
+	 */
+	
+	public String getKeyword(String word1) {
+		if(word1.equals(null)) {
+			return null;
+		}
+		word1 =word1.toLowerCase();	
+		 int hh =0;
+		char oo=word1.charAt(0);
+		 if(!Character.isLetter(oo)|| word1.length()==1 || word1.equals(null)) {
+			 return null;
+		 }
+		 for(int j=0; j<word1.length(); j++) {
+			char tee = word1.charAt(j);
+			 if(!Character.isLetter(tee)) {
+				 hh=j;
+			break;
+			 }
+		 }if (hh==0) {
+			 hh= word1.length();
+		 }
+		 
+		 	String gee = word1.substring(0, hh);
+		 	
+		 	String ww = word1.substring(hh, word1.length());
+		if (!gee.equals(word1)) {
+			 for ( int x =0; x< ww.length();x++) {
+				 char z = ww.charAt(x);
+				
+				 if(Character.isLetter(z)) {
+					 
+				 return null;
+				 
+			 }
+			 }
+		 }
+				 if(noiseWords.contains(gee)==true) {
+						return null;
+					}else {
+						
+						return gee;
+					}
+	}
+	
+	/**
+	 * Inserts the last occurrence in the parameter list in the correct position in the
+	 * list, based on ordering occurrences on descending frequencies. The elements
+	 * 0..n-2 in the list are already in the correct order. Insertion is done by
+	 * first finding the correct spot using binary search, then inserting at that spot.
+	 * 
+	 * @param occs List of Occurrences
+	 * @return Sequence of mid point indexes in the input list checked by the binary search process,
+	 *         null if the size of the input list is 1. This returned array list is only used to test
+	 *         your code - it is not used elsewhere in the program.
+	 */
+	public ArrayList<Integer> insertLastOccurrence(ArrayList<Occurrence> occs) {
+		ArrayList<Integer> integerlist = new ArrayList<Integer>();
+		if (occs.size()==1) {
+			return null;
+		}
+		else {
+		int high=occs.size()-2;
+		int low= 0;
+		int mid = 0;
+		Occurrence prev= occs.get(occs.size()-1);
+		occs.remove(prev);
+		int prevfreq=prev.frequency;
+		while(low<=high) {
+			mid= (low+high)/2;
+			integerlist.add(mid);
+			int ww = occs.get(mid).frequency;
+			
+			if(prevfreq==ww) {
+				break;
+			}
+			else if(prevfreq>ww) {
+				
+				high=mid-1;	
+			}else if(prevfreq<ww){
+				low = mid+1;
+				
+			}	
+		}
+		occs.add(mid, prev);
+		}
+		
+		
+		return integerlist;
+	
+	}
+	
+	/**
+	 * This method indexes all keywords found in all the input documents. When this
+	 * method is done, the keywordsIndex hash table will be filled with all keywords,
+	 * each of which is associated with an array list of Occurrence objects, arranged
+	 * in decreasing frequencies of occurrence.
+	 * 
+	 * @param docsFile Name of file that has a list of all the document file names, one name per line
+	 * @param noiseWordsFile Name of file that has a list of noise words, one noise word per line
+	 * @throws FileNotFoundException If there is a problem locating any of the input files on disk
+	 */
+	public void makeIndex(String docsFile, String noiseWordsFile) 
+	throws FileNotFoundException {
+		// load noise words to hash table
+		Scanner sc = new Scanner(new File(noiseWordsFile));
+		while (sc.hasNext()) {
+			String word = sc.next();
+			noiseWords.add(word);
+		}
+		
+		// index all keywords
+		sc = new Scanner(new File(docsFile));
+		while (sc.hasNext()) {
+			String docFile = sc.next();
+			HashMap<String,Occurrence> kws = loadKeywordsFromDocument(docFile);
+			mergeKeywords(kws);
+		}
+		sc.close();
+	}
+	
+	/**
+	 * Search result for "kw1 or kw2". A document is in the result set if kw1 or kw2 occurs in that
+	 * document. Result set is arranged in descending order of document frequencies. (Note that a
+	 * matching document will only appear once in the result.) Ties in frequency values are broken
+	 * in favor of the first keyword. (That is, if kw1 is in doc1 with frequency f1, and kw2 is in doc2
+	 * also with the same frequency f1, then doc1 will take precedence over doc2 in the result. 
+	 * The result set is limited to 5 entries. If there are no matches at all, result is null.
+	 * 
+	 * @param kw1 First keyword
+	 * @param kw1 Second keyword
+	 * @return List of documents in which either kw1 or kw2 occurs, arranged in descending order of
+	 *         frequencies. The result size is limited to 5 documents. If there are no matches, returns null.
+	 */
+	public ArrayList<String> top5search(String kw1, String kw2) {
+		ArrayList<String> end = new ArrayList<String>();
+		ArrayList<Occurrence> String1= keywordsIndex.get(kw1);
+		ArrayList<Occurrence> temp1= new ArrayList<Occurrence>();
+		ArrayList<Occurrence> String2= keywordsIndex.get(kw2);
+		if(String1==null && String2==null) {
+			//System.out.print("1");
+			return null;
+		}else if(String1==null && String2 != null) {
+			//System.out.print("2");
+			for(int ii =0;ii<=4 && ii<keywordsIndex.get(kw2).size();ii++) {
+				end.add(ii,keywordsIndex.get(kw2).get(ii).document);
+			}
+			return end;
+		}else if (String1!=null && String2 ==null) {
+			//System.out.print("3");
+			for(int ii=0;ii<=4 && ii<keywordsIndex.get(kw1).size();ii++) {
+				end.add(ii,keywordsIndex.get(kw1).get(ii).document);
+			}	
+			return end;
+		}
+		
+		
+		else if(String1!=null && String2!= null) {
+			//add all of them
+			//System.out.println("4");
+			temp1.addAll(keywordsIndex.get(kw1));	
+			temp1.addAll(keywordsIndex.get(kw2));
+	
+				
+				//System.out.println(temp);
+				
+			//sort them
+			//return t
+			for (int uu=0;uu < temp1.size();uu++) {
+				for(int hh=1; hh<temp1.size()-uu;hh++) {
+					int i = temp1.get(hh-1).frequency;					
+					int j = temp1.get(hh).frequency;
+					if(i<j) {
+						Occurrence two = temp1.get(hh-1);
+						temp1.set(hh-1, temp1.get(hh));
+						temp1.set(hh,  two);	
+					}
+				}
+			}
+			//System.out.println("ordered " + temp);
+			int jj =0;
+			while(jj<temp1.size()&&jj<=5){
+				for (int ww = jj + 1; ww < temp1.size(); ww++){
+				
+					if (temp1.get(jj).document.equals(temp1.get(ww).document))
+						temp1.remove(ww);
+				}			
+				jj++;
+				}
+			
+			
+			if(temp1.size()>=6 ) {
+				while(temp1.size()>=6) {
+					temp1.remove(temp1.size()-1);
+				}
+			}
+				//System.out.println("finaltemp "+ temp);
+			
+				for(int ii =0; ii<temp1.size(); ii++) {
+					
+					end.add(temp1.get(ii).document);
+				}
+			
+		return end;
+		}
+		return end;
+	}
+
+	}
