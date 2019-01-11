@@ -1,0 +1,21 @@
+package lse;
+
+import static org.junit.Assert.*;
+
+import java.io.FileNotFoundException;
+
+import org.junit.Test;
+
+public class LSE {
+
+	@Test
+	public void test() throws Exception {
+LittleSearchEngine engine = new LittleSearchEngine();
+
+assertNull(engine.getKeyword("1aaaahhhbecause"));
+assertNotNull(engine.getKeyword("ilana"));
+assertNull(engine.getKeyword("aaaahhh77because"));
+assertEquals("guuian", "julian");
+	}
+
+}
